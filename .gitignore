@@ -1,0 +1,12 @@
+node_modules/
+.env
+.env.local
+*.log
+.DS_Store
+.vscode/
+.idea/
+coverage/
+dist/
+
+# Keep the local README out of the repo (internal notes).
+README.md
