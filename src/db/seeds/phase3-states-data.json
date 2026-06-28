@@ -1,0 +1,965 @@
+{
+  "Akwa Ibom": {
+    "lgas": [
+      "Abak",
+      "Eastern Obolo",
+      "Eket",
+      "Esit Eket",
+      "Essien Udim",
+      "Etim Ekpo",
+      "Etinan",
+      "Ibeno",
+      "Ibesikpo Asutan",
+      "Ibiono Ibom",
+      "Ika",
+      "Ikono",
+      "Ikot Abasi",
+      "Ikot Ekpene",
+      "Ini",
+      "Itu",
+      "Mbo",
+      "Mkpat Enin",
+      "Nsit Atai",
+      "Nsit Ibom",
+      "Nsit Ubium",
+      "Obot Akara",
+      "Okobo",
+      "Onna",
+      "Oron",
+      "Oruk Anam",
+      "Udung Uko",
+      "Ukanafun",
+      "Uruan",
+      "Urue Offong/Oruko",
+      "Uyo"
+    ],
+    "facilities": [
+      {
+        "lga": "Abak",
+        "name": "Afaha Obong Primary Health Centre"
+      },
+      {
+        "lga": "Abak",
+        "name": "Ebom Primary Health Centre"
+      },
+      {
+        "lga": "Abak",
+        "name": "Mercy Hospital"
+      },
+      {
+        "lga": "Abak",
+        "name": "Uduak Abasi Clinic"
+      },
+      {
+        "lga": "Abak",
+        "name": "Ukpom Abak General Hospital"
+      },
+      {
+        "lga": "Eastern Obolo",
+        "name": "Iko Town Primary Health Centre"
+      },
+      {
+        "lga": "Eket",
+        "name": "Effoi Primary Health Centre"
+      },
+      {
+        "lga": "Eket",
+        "name": "Eket Immanuel General Hospital"
+      },
+      {
+        "lga": "Eket",
+        "name": "Ikot Ebok Primary Health Centre (Operational Base)"
+      },
+      {
+        "lga": "Eket",
+        "name": "Okon Eket Comprehensive Health Centre"
+      },
+      {
+        "lga": "Esit Eket",
+        "name": "Ekpene Obo Cottage Hospital"
+      },
+      {
+        "lga": "Esit Eket",
+        "name": "Idung Assan Health Centre"
+      },
+      {
+        "lga": "Esit Eket",
+        "name": "Uquo Primary Health Centre"
+      },
+      {
+        "lga": "Essien Udim",
+        "name": "Adiasim Health Centre"
+      },
+      {
+        "lga": "Essien Udim",
+        "name": "Afaha Ikot Ebak Primary Health Centre"
+      },
+      {
+        "lga": "Essien Udim",
+        "name": "Ekpenyong 1 Midim Atan Health Centre"
+      },
+      {
+        "lga": "Essien Udim",
+        "name": "Ikot Akpan Effia Health Centre"
+      },
+      {
+        "lga": "Essien Udim",
+        "name": "Ikot Ide Health Centre"
+      },
+      {
+        "lga": "Essien Udim",
+        "name": "Ikpe Annang General Hospital"
+      },
+      {
+        "lga": "Essien Udim",
+        "name": "Ikpe Annang Health Centre"
+      },
+      {
+        "lga": "Essien Udim",
+        "name": "St. Mary's Hospital, Uruakpan"
+      },
+      {
+        "lga": "Essien Udim",
+        "name": "Ukana Cottage Hospital"
+      },
+      {
+        "lga": "Essien Udim",
+        "name": "Ukana East Primary Health Centre"
+      },
+      {
+        "lga": "Essien Udim",
+        "name": "Ukana Iba St Joseph's rehabilitation Centre"
+      },
+      {
+        "lga": "Etim Ekpo",
+        "name": "Etim Ekpo General Hospital"
+      },
+      {
+        "lga": "Etim Ekpo",
+        "name": "Etim Ekpo Primary Health Centre"
+      },
+      {
+        "lga": "Etim Ekpo",
+        "name": "Ikot Ebo Health Centre"
+      },
+      {
+        "lga": "Etim Ekpo",
+        "name": "Utu Etim Ekpo Divine Love Hospital"
+      },
+      {
+        "lga": "Etinan",
+        "name": "Ekpene Obom QIC Rehabilitation Hosp"
+      },
+      {
+        "lga": "Etinan",
+        "name": "Etinan General Hospital"
+      },
+      {
+        "lga": "Etinan",
+        "name": "Etinan Primary Health Centre"
+      },
+      {
+        "lga": "Etinan",
+        "name": "Ikot Obio Inyang Primary Health Centre"
+      },
+      {
+        "lga": "Etinan",
+        "name": "Ndon Utim Primary Health Centre"
+      },
+      {
+        "lga": "Ibeno",
+        "name": "Ibeno Cottage Hospital"
+      },
+      {
+        "lga": "Ibeno",
+        "name": "Iwuo Achang Health Post"
+      },
+      {
+        "lga": "Ibeno",
+        "name": "Mkpanak Primary Health Center"
+      },
+      {
+        "lga": "Ibesikpo Asutan",
+        "name": "Akpautong Mt. Camel Hospital"
+      },
+      {
+        "lga": "Ibesikpo Asutan",
+        "name": "Ikot Iko Primary Health Centre"
+      },
+      {
+        "lga": "Ibesikpo Asutan",
+        "name": "Ikot Obio Edim Health Centre"
+      },
+      {
+        "lga": "Ibesikpo Asutan",
+        "name": "Nung Udoe Model Primary Health Centre"
+      },
+      {
+        "lga": "Ibesikpo Asutan",
+        "name": "Nung Udoe Primary Health Centre"
+      },
+      {
+        "lga": "Ibiono Ibom",
+        "name": "Ibiono Handmaids Hospital"
+      },
+      {
+        "lga": "Ibiono Ibom",
+        "name": "Ibiono Palmer Memorial Hospital"
+      },
+      {
+        "lga": "Ibiono Ibom",
+        "name": "Ikot Adaidem Primary Health Centre"
+      },
+      {
+        "lga": "Ibiono Ibom",
+        "name": "Ikot Idaha Primary Health Centre"
+      },
+      {
+        "lga": "Ibiono Ibom",
+        "name": "Ikpa Ikot Uneke Primary Health Centre"
+      },
+      {
+        "lga": "Ibiono Ibom",
+        "name": "Nsan Health Centre"
+      },
+      {
+        "lga": "Ibiono Ibom",
+        "name": "Ntan Ibiono Eduwem Clinic"
+      },
+      {
+        "lga": "Ibiono Ibom",
+        "name": "Use Abat St. Theresa's Hospital"
+      },
+      {
+        "lga": "Ika",
+        "name": "Nto Etuk Udo Health Centre"
+      },
+      {
+        "lga": "Ika",
+        "name": "Urua Inyang Primary Health Centre"
+      },
+      {
+        "lga": "Ikono",
+        "name": "Ediene I Health Centre"
+      },
+      {
+        "lga": "Ikono",
+        "name": "Etip Ediene Primary Health Centre"
+      },
+      {
+        "lga": "Ikono",
+        "name": "Ibiaku Primary Health Centre (BASE)"
+      },
+      {
+        "lga": "Ikono",
+        "name": "Ikono General Hospital"
+      },
+      {
+        "lga": "Ikono",
+        "name": "Nung Ukim Health Centre"
+      },
+      {
+        "lga": "Ikono",
+        "name": "Ukpom-Ikono Primary Health Centre"
+      },
+      {
+        "lga": "Ikot Abasi",
+        "name": "Base Ikot Abasi Primary Health Centre"
+      },
+      {
+        "lga": "Ikot Abasi",
+        "name": "Ikot Abasi General Hospital"
+      },
+      {
+        "lga": "Ikot Ekpene",
+        "name": "Abiakpo Ikot Essien Health Centre"
+      },
+      {
+        "lga": "Ikot Ekpene",
+        "name": "Confidence Maternity/Health care Services"
+      },
+      {
+        "lga": "Ikot Ekpene",
+        "name": "Demak Clinic"
+      },
+      {
+        "lga": "Ikot Ekpene",
+        "name": "Ememobong Maternity"
+      },
+      {
+        "lga": "Ikot Ekpene",
+        "name": "Evergreen Medical Centre"
+      },
+      {
+        "lga": "Ikot Ekpene",
+        "name": "Ikot Ekpene General Hospital"
+      },
+      {
+        "lga": "Ikot Ekpene",
+        "name": "Ikot Ekpene Infectious Disease Hospital"
+      },
+      {
+        "lga": "Ikot Ekpene",
+        "name": "Ikot Ekpene Primary Health Centre"
+      },
+      {
+        "lga": "Ikot Ekpene",
+        "name": "Ikot Otu Health Centre"
+      },
+      {
+        "lga": "Ikot Ekpene",
+        "name": "Ikot Udoe Health Centre"
+      },
+      {
+        "lga": "Ini",
+        "name": "Ikpe Ikot Nkon General Hospital"
+      },
+      {
+        "lga": "Ini",
+        "name": "Iwerre Health Centre"
+      },
+      {
+        "lga": "Ini",
+        "name": "Mbia Obong Ikot Udofia Primary Health Centre"
+      },
+      {
+        "lga": "Ini",
+        "name": "Odoro Ikpe Operational Base"
+      },
+      {
+        "lga": "Ini",
+        "name": "Usuk Ibakasi Primary Health Centre"
+      },
+      {
+        "lga": "Itu",
+        "name": "Ibom Specialist Hospital"
+      },
+      {
+        "lga": "Itu",
+        "name": "Ikot Andem Itam Primary Health Centre"
+      },
+      {
+        "lga": "Itu",
+        "name": "Mary Slessor General Hospital"
+      },
+      {
+        "lga": "Itu",
+        "name": "Mbak Atai Operational Base Primary Health Centre"
+      },
+      {
+        "lga": "Itu",
+        "name": "Mbiabong Itam Health Centre"
+      },
+      {
+        "lga": "Itu",
+        "name": "Ntak Inyang Model Primary Health Centre"
+      },
+      {
+        "lga": "Itu",
+        "name": "West Itam Primary Health Centre"
+      },
+      {
+        "lga": "Mbo",
+        "name": "Ebughu Primary Health Center"
+      },
+      {
+        "lga": "Mbo",
+        "name": "Enwang Primary Health Centre"
+      },
+      {
+        "lga": "Mbo",
+        "name": "Ibaka Primary Health Centre"
+      },
+      {
+        "lga": "Mbo",
+        "name": "Uda Health Centre"
+      },
+      {
+        "lga": "Mbo",
+        "name": "Uyenghe Primary Health Centre"
+      },
+      {
+        "lga": "Mkpat Enin",
+        "name": "Ikot Abia Cottage Hospital"
+      },
+      {
+        "lga": "Mkpat Enin",
+        "name": "Mkpat Enin Primary Health Centre"
+      },
+      {
+        "lga": "Nsit Atai",
+        "name": "Ikot Edebe Health Centre"
+      },
+      {
+        "lga": "Nsit Atai",
+        "name": "Nsit Atai Primary Health Centre"
+      },
+      {
+        "lga": "Nsit Ibom",
+        "name": "Afaha Offiong Primary Health Care Operational Base"
+      },
+      {
+        "lga": "Nsit Ibom",
+        "name": "Mbiokporo I Model Primary Health Centre"
+      },
+      {
+        "lga": "Nsit Ubium",
+        "name": "Akai Ubium Cottage Hospital"
+      },
+      {
+        "lga": "Nsit Ubium",
+        "name": "Ikot Ekpene Udo Cottage Hospital"
+      },
+      {
+        "lga": "Nsit Ubium",
+        "name": "Ikot Ekwere Model Primary Health Centre"
+      },
+      {
+        "lga": "Nsit Ubium",
+        "name": "Nsit Ubium Primary Health Centre"
+      },
+      {
+        "lga": "Obot Akara",
+        "name": "Ikot Utu Model Primary Health Centre"
+      },
+      {
+        "lga": "Obot Akara",
+        "name": "Nto Edino Comprehensive Health Centre"
+      },
+      {
+        "lga": "Obot Akara",
+        "name": "Nto Edino Primary Health Centre"
+      },
+      {
+        "lga": "Obot Akara",
+        "name": "Obot Akara Primary Health Centre"
+      },
+      {
+        "lga": "Okobo",
+        "name": "Eweme Model Primary Health Centre"
+      },
+      {
+        "lga": "Okobo",
+        "name": "Ima Abasi Maternity Home, Ekeya"
+      },
+      {
+        "lga": "Okobo",
+        "name": "Mbokpu Oduobo Primary Health Centre"
+      },
+      {
+        "lga": "Okobo",
+        "name": "Okobo General Hospital"
+      },
+      {
+        "lga": "Okobo",
+        "name": "Okopedi Primary Health Centre"
+      },
+      {
+        "lga": "Okobo",
+        "name": "Oti Oro Primary Health Centre"
+      },
+      {
+        "lga": "Onna",
+        "name": "Base Abat Primary Health Centre"
+      },
+      {
+        "lga": "Onna",
+        "name": "General Hospital Awa"
+      },
+      {
+        "lga": "Onna",
+        "name": "Ikot Eko Ibon Cottage Hospital"
+      },
+      {
+        "lga": "Oron",
+        "name": "Esin Ufot Primary Health Centre"
+      },
+      {
+        "lga": "Oron",
+        "name": "Eyo Abasi Health Post"
+      },
+      {
+        "lga": "Oron",
+        "name": "Idua Assang Health Post"
+      },
+      {
+        "lga": "Oron",
+        "name": "Oron Christ Victory Medical Centre"
+      },
+      {
+        "lga": "Oron",
+        "name": "Oron General Hospital (Iquita)"
+      },
+      {
+        "lga": "Oron",
+        "name": "Oron Operational Base Primary Health Centre"
+      },
+      {
+        "lga": "Oron",
+        "name": "Priscon Clinic"
+      },
+      {
+        "lga": "Oron",
+        "name": "St Patricks Clinic"
+      },
+      {
+        "lga": "Oron",
+        "name": "Uwem Foundation Specialist Hospital"
+      },
+      {
+        "lga": "Oruk Anam",
+        "name": "Ekparakwa Health Centre"
+      },
+      {
+        "lga": "Oruk Anam",
+        "name": "Ikot Akpan Essien Health Centre"
+      },
+      {
+        "lga": "Oruk Anam",
+        "name": "Ikot Ibritam Primary Health Centre Operational Base"
+      },
+      {
+        "lga": "Oruk Anam",
+        "name": "Ikot Okoro General Hospital"
+      },
+      {
+        "lga": "Udung Uko",
+        "name": "Eyo Okponung Primary Health Centre"
+      },
+      {
+        "lga": "Udung Uko",
+        "name": "Eyofin Primary Health Centre"
+      },
+      {
+        "lga": "Ukanafun",
+        "name": "Ikot Akpa Nkuk Primary Health Centre"
+      },
+      {
+        "lga": "Uruan",
+        "name": "Ekpene Ibia Primary Health Center"
+      },
+      {
+        "lga": "Uruan",
+        "name": "Ibiaku Isshiet Primary Health Centre"
+      },
+      {
+        "lga": "Uruan",
+        "name": "Ibiaku-Uruan Primary Health Centre"
+      },
+      {
+        "lga": "Uruan",
+        "name": "Idu-Uruan Primary Health Centre"
+      },
+      {
+        "lga": "Uruan",
+        "name": "Ikot Otoenyie Health Post"
+      },
+      {
+        "lga": "Uruan",
+        "name": "Ituk Mbang Methodist General Hospital"
+      },
+      {
+        "lga": "Uruan",
+        "name": "Mbiaya Comprehensive Health Centre"
+      },
+      {
+        "lga": "Uruan",
+        "name": "Ndon Ebom Primary Health Center"
+      },
+      {
+        "lga": "Uruan",
+        "name": "Nwaniba Primary Health Centre"
+      },
+      {
+        "lga": "Uruan",
+        "name": "Use Primary Health Centre"
+      },
+      {
+        "lga": "Urue Offong/Oruko",
+        "name": "Base Urue Offong Primary Health Centre"
+      },
+      {
+        "lga": "Urue Offong/Oruko",
+        "name": "Ikpe Oro Health Post"
+      },
+      {
+        "lga": "Urue Offong/Oruko",
+        "name": "Mbokpu-Eyoakan Health Centre"
+      },
+      {
+        "lga": "Urue Offong/Oruko",
+        "name": "Oduonim Health Post"
+      },
+      {
+        "lga": "Urue Offong/Oruko",
+        "name": "Oruko General Hospital"
+      },
+      {
+        "lga": "Urue Offong/Oruko",
+        "name": "Oruko Primary Health Centre"
+      },
+      {
+        "lga": "Urue Offong/Oruko",
+        "name": "Oyoku Ibighi Health Centre"
+      },
+      {
+        "lga": "Uyo",
+        "name": "First Line Clinics and Surgery"
+      },
+      {
+        "lga": "Uyo",
+        "name": "Gateway Hospital"
+      },
+      {
+        "lga": "Uyo",
+        "name": "Idoro Obio Health Centre"
+      },
+      {
+        "lga": "Uyo",
+        "name": "Ifa Atai Health Post"
+      },
+      {
+        "lga": "Uyo",
+        "name": "Ikot Ayan Ikono Primary Health Centre"
+      },
+      {
+        "lga": "Uyo",
+        "name": "Ikot Okubo Primary Health Centre"
+      },
+      {
+        "lga": "Uyo",
+        "name": "LifeCare Clinic"
+      },
+      {
+        "lga": "Uyo",
+        "name": "Mbak Etoi Primary Health Centre"
+      },
+      {
+        "lga": "Uyo",
+        "name": "Mbiabong Primary Health Centre"
+      },
+      {
+        "lga": "Uyo",
+        "name": "Oku Model Health Centre Uyo"
+      },
+      {
+        "lga": "Uyo",
+        "name": "Our Lady of Lourdes Infirmary"
+      },
+      {
+        "lga": "Uyo",
+        "name": "Premier Medical Centre"
+      },
+      {
+        "lga": "Uyo",
+        "name": "Sheltered Specialist hospital"
+      },
+      {
+        "lga": "Uyo",
+        "name": "St. Luke's Hospital Anua"
+      },
+      {
+        "lga": "Uyo",
+        "name": "Ubong Abasi Specialist Clinic"
+      },
+      {
+        "lga": "Uyo",
+        "name": "University of Uyo Medical Centre"
+      },
+      {
+        "lga": "Uyo",
+        "name": "University Teaching Hospital"
+      },
+      {
+        "lga": "Uyo",
+        "name": "Uyo Base Primary Health Centre"
+      },
+      {
+        "lga": "Uyo",
+        "name": "Uyo Police Hospital"
+      },
+      {
+        "lga": "Uyo",
+        "name": "Uyo St Athanasius Medical Centre"
+      }
+    ]
+  },
+  "Cross River": {
+    "lgas": [
+      "Abi",
+      "Akamkpa",
+      "Akpabuyo",
+      "Bakassi",
+      "Biase",
+      "Boki",
+      "Calabar Municipal",
+      "Calabar South",
+      "Ikom",
+      "Obanliku",
+      "Obubra",
+      "Obudu",
+      "Odukpani",
+      "Ogoja",
+      "Yakurr",
+      "Yala"
+    ],
+    "facilities": [
+      {
+        "lga": "Abi",
+        "name": "Eja Memorial Hospital"
+      },
+      {
+        "lga": "Abi",
+        "name": "Igbo-Imabana Model Primary Health Centre"
+      },
+      {
+        "lga": "Akamkpa",
+        "name": "Akamkpa General Hospital"
+      },
+      {
+        "lga": "Akamkpa",
+        "name": "Aningeje Primary Health Centre"
+      },
+      {
+        "lga": "Akamkpa",
+        "name": "Mfamosing Primary Health Centre"
+      },
+      {
+        "lga": "Akamkpa",
+        "name": "Mma Efa Health Centre"
+      },
+      {
+        "lga": "Akamkpa",
+        "name": "Oban Health Centre"
+      },
+      {
+        "lga": "Akpabuyo",
+        "name": "Akpabuyo St Joseph Hospital"
+      },
+      {
+        "lga": "Akpabuyo",
+        "name": "Ikot Edem Odo Health Centre"
+      },
+      {
+        "lga": "Bakassi",
+        "name": "Ekpri Obutong Health Centre"
+      },
+      {
+        "lga": "Bakassi",
+        "name": "Ikang Primary Health Centre"
+      },
+      {
+        "lga": "Biase",
+        "name": "Akpet Central Cottage Hospital"
+      },
+      {
+        "lga": "Biase",
+        "name": "Aya Medical Centre"
+      },
+      {
+        "lga": "Boki",
+        "name": "Katchuan Iruan Model Primary Health Centre"
+      },
+      {
+        "lga": "Boki",
+        "name": "Okundi Comprehensive Health Centre"
+      },
+      {
+        "lga": "Calabar Municipal",
+        "name": "Bakor Medical centre"
+      },
+      {
+        "lga": "Calabar Municipal",
+        "name": "Calabar General Hospital"
+      },
+      {
+        "lga": "Calabar Municipal",
+        "name": "Calabar Women and Children Hospital"
+      },
+      {
+        "lga": "Calabar Municipal",
+        "name": "Diamond Hill Health Centre"
+      },
+      {
+        "lga": "Calabar Municipal",
+        "name": "Ekorinim Health Centre"
+      },
+      {
+        "lga": "Calabar Municipal",
+        "name": "Emmanuel Infirmiry"
+      },
+      {
+        "lga": "Calabar Municipal",
+        "name": "Faith Foundation Clinic"
+      },
+      {
+        "lga": "Calabar Municipal",
+        "name": "Hiltop Healthcare Foundation"
+      },
+      {
+        "lga": "Calabar Municipal",
+        "name": "Ikot Ekpo Health Centre (Ward 10)"
+      },
+      {
+        "lga": "Calabar Municipal",
+        "name": "Ikot Enebong Health Post"
+      },
+      {
+        "lga": "Calabar Municipal",
+        "name": "Ishie Health Post"
+      },
+      {
+        "lga": "Calabar Municipal",
+        "name": "Kasuk Health Centre"
+      },
+      {
+        "lga": "Calabar Municipal",
+        "name": "Nyahasang Health Centre"
+      },
+      {
+        "lga": "Calabar Municipal",
+        "name": "Police Hospital"
+      },
+      {
+        "lga": "Calabar Municipal",
+        "name": "University of Calabar Medical Centre"
+      },
+      {
+        "lga": "Calabar Municipal",
+        "name": "University of Calabar Teaching Hospital"
+      },
+      {
+        "lga": "Calabar South",
+        "name": "Akani Esuk Health Centre"
+      },
+      {
+        "lga": "Calabar South",
+        "name": "Anantigha Primary Health Centre"
+      },
+      {
+        "lga": "Calabar South",
+        "name": "Anderson Primary Health Centre"
+      },
+      {
+        "lga": "Calabar South",
+        "name": "Calabar South Family Health Centre"
+      },
+      {
+        "lga": "Calabar South",
+        "name": "Cross River University of Science and Technology (CRUTECH) Medical Centre"
+      },
+      {
+        "lga": "Calabar South",
+        "name": "Dr Lawrence Henshaw Memorial Hospital"
+      },
+      {
+        "lga": "Calabar South",
+        "name": "Ekpo Abasi Primary Health Centre"
+      },
+      {
+        "lga": "Calabar South",
+        "name": "Essierebom Primary Health Centre"
+      },
+      {
+        "lga": "Calabar South",
+        "name": "Goldie Clinic"
+      },
+      {
+        "lga": "Calabar South",
+        "name": "Henshaw Town Health Post"
+      },
+      {
+        "lga": "Calabar South",
+        "name": "Mambo Clinic"
+      },
+      {
+        "lga": "Calabar South",
+        "name": "Mount Zion Medical Centre"
+      },
+      {
+        "lga": "Calabar South",
+        "name": "Peace medical centre"
+      },
+      {
+        "lga": "Ikom",
+        "name": "County Specialist Hospital"
+      },
+      {
+        "lga": "Ikom",
+        "name": "Holy Family Catholic Hospital"
+      },
+      {
+        "lga": "Ikom",
+        "name": "Melrose Hospital"
+      },
+      {
+        "lga": "Obanliku",
+        "name": "Obanliku General Hospital"
+      },
+      {
+        "lga": "Obubra",
+        "name": "Ekana Medical Centre"
+      },
+      {
+        "lga": "Obubra",
+        "name": "Obubra General Hospital"
+      },
+      {
+        "lga": "Obubra",
+        "name": "Obubra Maternal and Child Health Clinic"
+      },
+      {
+        "lga": "Obudu",
+        "name": "Obudu Clinic"
+      },
+      {
+        "lga": "Obudu",
+        "name": "Obudu Urban1 Primary Health Centre"
+      },
+      {
+        "lga": "Obudu",
+        "name": "Sacred Heart Catholic Hospital"
+      },
+      {
+        "lga": "Odukpani",
+        "name": "Ikot Effiong Otop Comprehensive Health Centre (UCTH Annex)"
+      },
+      {
+        "lga": "Odukpani",
+        "name": "Ukem General Hospital"
+      },
+      {
+        "lga": "Ogoja",
+        "name": "Ogoja Catholic Maternity Hospital"
+      },
+      {
+        "lga": "Ogoja",
+        "name": "Ogoja General Hospital"
+      },
+      {
+        "lga": "Ogoja",
+        "name": "Ogoja Santa Maria Clinic"
+      },
+      {
+        "lga": "Yakurr",
+        "name": "Ugep General Hospital"
+      },
+      {
+        "lga": "Yala",
+        "name": "Oba Comprehensive Health Centre"
+      },
+      {
+        "lga": "Yala",
+        "name": "Okpoma General Hospital"
+      },
+      {
+        "lga": "Yala",
+        "name": "Wanihem Comprehensive Health Centre"
+      },
+      {
+        "lga": "Yala",
+        "name": "Yala Lutheran Hospital"
+      }
+    ]
+  }
+}
