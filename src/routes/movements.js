@@ -5,6 +5,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const { notFound, forbidden, badRequest } = require('../utils/errors');
+const { applyFacilityScope } = require('../middleware/scope');
 const {
   recordReceipt,
   recordAdjustment,
@@ -63,46 +64,34 @@ const MOVEMENT_SELECT = `
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-// Adds a scope condition based on the requesting user's role:
-//   facility_user → restrict to their facility
-//   dso          → restrict to facilities in their LGA
-//   others       → no scope (use any caller-supplied facility filter instead)
-// Mutates `conditions` and `params` in place. Returns true if a scope was
-// applied (so callers can decide whether to honour an explicit facility_id
-// query param).
-function applyAccessScope(req, conditions, params, columnRef = 'm.facility_id') {
-  if (req.user.role === 'facility_user') {
-    if (!req.user.facility_id) throw badRequest('Facility user has no facility assigned');
-    params.push(req.user.facility_id);
-    conditions.push(`${columnRef} = $${params.length}`);
-    return true;
-  }
-  if (req.user.role === 'dso') {
-    if (!req.user.lga_id) throw badRequest('DSO has no LGA assigned');
-    params.push(req.user.lga_id);
-    conditions.push(`${columnRef} IN (SELECT id FROM facilities WHERE lga_id = $${params.length})`);
-    return true;
-  }
-  return false;
-}
+// Movements use the shared facility scope on m.facility_id.
+const applyAccessScope = (req, conditions, params, columnRef = 'm.facility_id') =>
+  applyFacilityScope(req, conditions, params, columnRef);
 
-// Confirms the movement belongs to this user's accessible scope.
+// Confirms the movement belongs to this user's accessible scope (facility / LGA / state).
 async function assertFacilityScope(req, movementId) {
-  if (req.user.role !== 'facility_user' && req.user.role !== 'dso') return;
+  const { role } = req.user;
+  if (role === 'super_admin') return;
   const r = await pool.query(
-    `SELECT m.facility_id, f.lga_id
+    `SELECT m.facility_id, f.lga_id, l.state_id
      FROM stock_movements m
      JOIN facilities f ON f.id = m.facility_id
+     JOIN lgas       l ON l.id = f.lga_id
      WHERE m.id = $1`,
     [movementId]
   );
   if (r.rows.length === 0) throw notFound('Movement not found');
   const row = r.rows[0];
-  if (req.user.role === 'facility_user' && row.facility_id !== req.user.facility_id) {
+  if (role === 'facility_user' && row.facility_id !== req.user.facility_id) {
     throw forbidden('You can only act on your own facility\'s movements');
   }
-  if (req.user.role === 'dso' && row.lga_id !== req.user.lga_id) {
+  if (role === 'dso' && row.lga_id !== req.user.lga_id) {
     throw forbidden('You can only view movements within your LGA');
+  }
+  if (['admin', 'central_logistics', 'viewer'].includes(role)
+      && req.user.effective_state_id
+      && row.state_id !== req.user.effective_state_id) {
+    throw forbidden('You can only access movements in your state');
   }
 }
 
@@ -165,12 +154,14 @@ router.post(
 );
 
 // ── POST /api/movements/bulk-receipt ─────────────────────────────────────────
+// Each line carries its own tool, so one submission can send many tools to many
+// facilities (the matrix grid).
 const bulkReceiptSchema = z.object({
-  tool_id:      z.number().int().positive('Tool is required'),
   items:        z.array(z.object({
+    tool_id:     z.number().int().positive(),
     facility_id: z.number().int().positive(),
     quantity:    z.number().int().positive(),
-  })).min(1, 'At least one facility is required'),
+  })).min(1, 'At least one line is required'),
   reference_no: z.string().trim().optional(),
   note:         z.string().trim().optional(),
 });
@@ -181,10 +172,9 @@ router.post(
   requireRole('admin', 'central_logistics'),
   validate(bulkReceiptSchema),
   asyncHandler(async (req, res) => {
-    const { tool_id, items, reference_no, note } = req.body;
+    const { items, reference_no, note } = req.body;
     const movements = await recordBulkReceipt({
-      toolId:      tool_id,
-      items:       items.map((i) => ({ facilityId: i.facility_id, quantity: i.quantity })),
+      items:       items.map((i) => ({ toolId: i.tool_id, facilityId: i.facility_id, quantity: i.quantity })),
       referenceNo: reference_no,
       note,
       performedBy: req.user.id,
@@ -262,11 +252,14 @@ router.get(
   requireAuth,
   requireRole('admin'),
   asyncHandler(async (req, res) => {
+    const conditions = [`m.ack_status = 'DISPUTED'`, `m.dispute_resolved_at IS NULL`];
+    const params = [];
+    applyAccessScope(req, conditions, params); // state admins → their state only
     const result = await pool.query(
       `${MOVEMENT_SELECT}
-       WHERE m.ack_status = 'DISPUTED' AND m.dispute_resolved_at IS NULL
+       WHERE ${conditions.join(' AND ')}
        ORDER BY m.ack_at DESC`,
-      []
+      params
     );
     res.json({ data: result.rows });
   })
@@ -313,6 +306,8 @@ router.post(
   asyncHandler(async (req, res) => {
     const movementId = parseInt(req.params.id, 10);
     if (isNaN(movementId)) throw badRequest('Invalid movement id');
+
+    await assertFacilityScope(req, movementId); // state admins → their state only
 
     const result = await applyDisputeResolution({
       movementId,

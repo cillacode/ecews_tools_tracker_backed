@@ -10,6 +10,7 @@ const authRoutes         = require('./routes/auth');
 const toolsRoutes        = require('./routes/tools');
 const facilitiesRoutes   = require('./routes/facilities');
 const thematicAreasRoutes = require('./routes/thematicAreas');
+const statesRoutes       = require('./routes/states');
 const lgasRoutes         = require('./routes/lgas');
 const movementsRoutes    = require('./routes/movements');
 const dashboardRoutes    = require('./routes/dashboard');
@@ -19,6 +20,10 @@ const reportsRoutes      = require('./routes/reports');
 const importRoutes       = require('./routes/import');
 const usageRoutes        = require('./routes/usage');
 const adminRoutes        = require('./routes/admin');
+const stateMovementsRoutes = require('./routes/stateMovements');
+const gatePassRoutes       = require('./routes/gatePass');
+const procurementRoutes    = require('./routes/procurement');
+const servicePointsRoutes  = require('./routes/servicePoints');
 
 const app = express();
 
@@ -83,6 +88,7 @@ app.use('/api/auth',           authRoutes);
 app.use('/api/tools',         toolsRoutes);
 app.use('/api/facilities',    facilitiesRoutes);
 app.use('/api/thematic-areas', thematicAreasRoutes);
+app.use('/api/states',        statesRoutes);
 app.use('/api/lgas',          lgasRoutes);
 app.use('/api/movements',     movementsRoutes);
 app.use('/api/dashboard',     dashboardRoutes);
@@ -92,6 +98,10 @@ app.use('/api/reports',       reportsRoutes);
 app.use('/api/import',        importRoutes);
 app.use('/api/usage',         usageRoutes);
 app.use('/api/admin',         adminRoutes);
+app.use('/api/state-movements', stateMovementsRoutes);
+app.use('/api/gate-pass',     gatePassRoutes);
+app.use('/api/procurement',   procurementRoutes);
+app.use('/api/service-points', servicePointsRoutes);
 
 // ── 404 + error handlers (must be last) ───────────────────────────────────
 app.use(notFoundHandler);

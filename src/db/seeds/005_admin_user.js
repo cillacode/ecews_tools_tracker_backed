@@ -16,9 +16,11 @@ async function seed() {
   }
 
   const hash = await bcrypt.hash(password, env.bcryptCost);
+  // Created as super_admin so the default account can see every state
+  // out of the box. State admins are added by super_admin via the UI.
   await pool.query(
     `INSERT INTO users (username, email, password_hash, full_name, role, is_active)
-     VALUES ($1, $2, $3, $4, 'admin', TRUE)`,
+     VALUES ($1, $2, $3, $4, 'super_admin', TRUE)`,
     [username, email, hash, name]
   );
 

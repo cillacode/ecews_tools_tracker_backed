@@ -5,6 +5,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const { notFound, forbidden, badRequest } = require('../utils/errors');
+const { applyStateScope, assertCanAccessFacility } = require('../middleware/scope');
 
 const router = express.Router();
 
@@ -14,22 +15,34 @@ router.get(
   '/',
   requireAuth,
   asyncHandler(async (req, res) => {
-    const { lga_id, q, page = 1, limit = 200 } = req.query;
+    const { lga_id, state_id, q, page = 1, limit = 200 } = req.query;
 
     const conditions = ['f.is_active = TRUE'];
     const params = [];
 
-    // The directory (names + LGA + state) is non-sensitive — facility users
-    // need it for transfer destinations, etc. Only DSOs are scoped here;
-    // their LGA boundary applies to all read surfaces.
-    // Stock and detail endpoints below remain scoped for every restricted role.
+    // Directory scoping:
+    //   super_admin / HQ viewer → all states (may filter by ?lga_id)
+    //   dso                     → their LGA only
+    //   everyone else           → their STATE (not narrower) so within-state
+    //                              transfer destination pickers still work for
+    //                              facility users. Cross-state is forbidden.
     if (req.user.role === 'dso') {
       if (!req.user.lga_id) throw badRequest('DSO has no LGA assigned');
       params.push(req.user.lga_id);
       conditions.push(`f.lga_id = $${params.length}`);
-    } else if (lga_id) {
-      params.push(Number(lga_id));
-      conditions.push(`f.lga_id = $${params.length}`);
+    } else {
+      // Adds `l.state_id = $n` for state-bound roles; no-op for super/HQ viewer.
+      applyStateScope(req, conditions, params, 'l.state_id');
+      // super_admin / HQ viewer may narrow to one state (state-bound roles are
+      // already constrained above, so this is only meaningful for them).
+      if (state_id && (req.user.role === 'super_admin' || !req.user.effective_state_id)) {
+        params.push(Number(state_id));
+        conditions.push(`l.state_id = $${params.length}`);
+      }
+      if (lga_id) {
+        params.push(Number(lga_id));
+        conditions.push(`f.lga_id = $${params.length}`);
+      }
     }
 
     if (q) {
@@ -39,8 +52,9 @@ router.get(
 
     const where = `WHERE ${conditions.join(' AND ')}`;
 
+    // NB: must join lgas here too — the WHERE can reference l.state_id.
     const countResult = await pool.query(
-      `SELECT COUNT(*) FROM facilities f ${where}`,
+      `SELECT COUNT(*) FROM facilities f JOIN lgas l ON l.id = f.lga_id ${where}`,
       params
     );
     const total = parseInt(countResult.rows[0].count, 10);
@@ -97,12 +111,7 @@ router.get(
     if (result.rows.length === 0) throw notFound('Facility not found');
 
     const facility = result.rows[0];
-    if (req.user.role === 'facility_user' && facility.id !== req.user.facility_id) {
-      throw forbidden('You can only view your own facility');
-    }
-    if (req.user.role === 'dso' && facility.lga_id !== req.user.lga_id) {
-      throw forbidden('You can only view facilities in your LGA');
-    }
+    assertCanAccessFacility(req, forbidden, facility);
 
     res.json({ data: facility });
   })
@@ -116,18 +125,15 @@ router.get(
   requireAuth,
   asyncHandler(async (req, res) => {
     const facilityResult = await pool.query(
-      'SELECT id, name, lga_id FROM facilities WHERE id = $1 AND is_active = TRUE',
+      `SELECT f.id, f.name, f.lga_id, l.state_id
+       FROM facilities f JOIN lgas l ON l.id = f.lga_id
+       WHERE f.id = $1 AND f.is_active = TRUE`,
       [req.params.id]
     );
     if (facilityResult.rows.length === 0) throw notFound('Facility not found');
 
     const facility = facilityResult.rows[0];
-    if (req.user.role === 'facility_user' && facility.id !== req.user.facility_id) {
-      throw forbidden('You can only view your own facility');
-    }
-    if (req.user.role === 'dso' && facility.lga_id !== req.user.lga_id) {
-      throw forbidden('You can only view facilities in your LGA');
-    }
+    assertCanAccessFacility(req, forbidden, facility);
 
     const stockResult = await pool.query(
       `SELECT

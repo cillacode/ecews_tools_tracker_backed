@@ -5,6 +5,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const { badRequest, forbidden } = require('../utils/errors');
+const { applyFacilityScope } = require('../middleware/scope');
 const { recordDailyUsage } = require('../services/usageService');
 
 const router = express.Router();
@@ -37,21 +38,36 @@ function assertMondayWeekStart(dateStr) {
   if (d.getUTCDay() !== 1) throw badRequest('week_start_date must be a Monday (YYYY-MM-DD)');
 }
 
-// Scope helper — same pattern as movements/reports.
-function applyAccessScope(req, conditions, params, columnRef = 'tu.facility_id') {
-  if (req.user.role === 'facility_user') {
-    if (!req.user.facility_id) throw badRequest('Facility user has no facility assigned');
-    params.push(req.user.facility_id);
-    conditions.push(`${columnRef} = $${params.length}`);
-    return true;
+// Scope helper — shared facility scope on tu.facility_id.
+const applyAccessScope = (req, conditions, params, columnRef = 'tu.facility_id') =>
+  applyFacilityScope(req, conditions, params, columnRef);
+
+// Resolve the facility a non-facility_user is acting on, enforcing scope.
+// facility_user → their own facility; everyone else must pass facility_id and
+// have it fall within their state (admin/central/viewer) or LGA (dso).
+async function resolveScopedFacility(req) {
+  if (req.user.role === 'facility_user') return req.user.facility_id;
+
+  const facilityId = parseInt(req.query.facility_id, 10);
+  if (!facilityId) throw badRequest('facility_id query param is required');
+  if (req.user.role === 'super_admin') return facilityId;
+
+  const r = await pool.query(
+    `SELECT f.lga_id, l.state_id FROM facilities f
+     JOIN lgas l ON l.id = f.lga_id WHERE f.id = $1`,
+    [facilityId]
+  );
+  if (r.rows.length === 0) throw forbidden('Facility not found');
+  const { lga_id, state_id } = r.rows[0];
+
+  if (req.user.role === 'dso' && lga_id !== req.user.lga_id) {
+    throw forbidden('Facility is outside your LGA');
   }
-  if (req.user.role === 'dso') {
-    if (!req.user.lga_id) throw badRequest('DSO has no LGA assigned');
-    params.push(req.user.lga_id);
-    conditions.push(`${columnRef} IN (SELECT id FROM facilities WHERE lga_id = $${params.length})`);
-    return true;
+  if (['admin', 'central_logistics', 'viewer'].includes(req.user.role)
+      && req.user.effective_state_id && state_id !== req.user.effective_state_id) {
+    throw forbidden('Facility is outside your state');
   }
-  return false;
+  return facilityId;
 }
 
 // ── POST /api/usage ──────────────────────────────────────────────────────────
@@ -60,9 +76,11 @@ function applyAccessScope(req, conditions, params, columnRef = 'tu.facility_id')
 const submitSchema = z.object({
   usage_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format YYYY-MM-DD required'),
   entries: z.array(z.object({
-    tool_id: z.number().int().positive(),
-    count:   z.number().int().min(0),
-    note:    z.string().trim().optional(),
+    tool_id:          z.number().int().positive(),
+    count:            z.number().int().min(0),
+    note:             z.string().trim().optional(),
+    service_point_id: z.number().int().positive().optional(),
+    physical_balance: z.number().int().min(0).optional(),
   })).min(1, 'At least one entry required'),
 });
 
@@ -104,19 +122,7 @@ router.get(
     const { date } = req.params;
     assertMondayWeekStart(date);
 
-    let facilityId;
-    if (req.user.role === 'facility_user') {
-      facilityId = req.user.facility_id;
-    } else {
-      facilityId = parseInt(req.query.facility_id, 10);
-      if (!facilityId) throw badRequest('facility_id query param is required');
-      if (req.user.role === 'dso') {
-        const r = await pool.query('SELECT lga_id FROM facilities WHERE id = $1', [facilityId]);
-        if (r.rows.length === 0 || r.rows[0].lga_id !== req.user.lga_id) {
-          throw forbidden('Facility is outside your LGA');
-        }
-      }
-    }
+    const facilityId = await resolveScopedFacility(req);
 
     const result = await pool.query(
       `SELECT
@@ -155,19 +161,7 @@ router.get(
     const { date } = req.params;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw badRequest('Date must be YYYY-MM-DD');
 
-    let facilityId;
-    if (req.user.role === 'facility_user') {
-      facilityId = req.user.facility_id;
-    } else {
-      facilityId = parseInt(req.query.facility_id, 10);
-      if (!facilityId) throw badRequest('facility_id query param is required');
-      if (req.user.role === 'dso') {
-        const r = await pool.query('SELECT lga_id FROM facilities WHERE id = $1', [facilityId]);
-        if (r.rows.length === 0 || r.rows[0].lga_id !== req.user.lga_id) {
-          throw forbidden('Facility is outside your LGA');
-        }
-      }
-    }
+    const facilityId = await resolveScopedFacility(req);
 
     const result = await pool.query(
       `SELECT
@@ -254,19 +248,7 @@ router.get(
     const week = req.query.week_start_date;
     assertMondayWeekStart(week);
 
-    let facilityId;
-    if (req.user.role === 'facility_user') {
-      facilityId = req.user.facility_id;
-    } else {
-      facilityId = parseInt(req.query.facility_id, 10);
-      if (!facilityId) throw badRequest('facility_id query param is required');
-      if (req.user.role === 'dso') {
-        const r = await pool.query('SELECT lga_id FROM facilities WHERE id = $1', [facilityId]);
-        if (r.rows.length === 0 || r.rows[0].lga_id !== req.user.lga_id) {
-          throw forbidden('Facility is outside your LGA');
-        }
-      }
-    }
+    const facilityId = await resolveScopedFacility(req);
 
     const result = await pool.query(
       `WITH
@@ -281,11 +263,21 @@ router.get(
          SELECT DISTINCT tool_id FROM facility_stock  WHERE facility_id = $1
        ),
        movements_before AS (
+         -- Incoming stock (RECEIPT / TRANSFER_IN) only counts once the
+         -- facility has confirmed physical receipt: full quantity when
+         -- ACCEPTED, the actual received quantity when a dispute has been
+         -- resolved, and nothing while still pending / in open dispute.
          SELECT
            tool_id,
            SUM(CASE
-             WHEN movement_type IN ('RECEIPT','TRANSFER_IN','ADJUSTMENT_INCREASE') THEN  quantity
-             WHEN movement_type IN ('TRANSFER_OUT','ADJUSTMENT_DECREASE')          THEN -quantity
+             WHEN movement_type IN ('RECEIPT','TRANSFER_IN') THEN
+               CASE
+                 WHEN ack_status = 'ACCEPTED' THEN quantity
+                 WHEN ack_status = 'DISPUTED' AND dispute_resolved_at IS NOT NULL THEN COALESCE(disputed_quantity, 0)
+                 ELSE 0
+               END
+             WHEN movement_type = 'ADJUSTMENT_INCREASE'                    THEN  quantity
+             WHEN movement_type IN ('TRANSFER_OUT','ADJUSTMENT_DECREASE')  THEN -quantity
              ELSE 0
            END) AS net
          FROM stock_movements
@@ -303,8 +295,23 @@ router.get(
        week_movements AS (
          SELECT
            tool_id,
-           SUM(CASE WHEN movement_type = 'RECEIPT' THEN quantity ELSE 0 END)                                AS supplied,
-           SUM(CASE WHEN movement_type IN ('TRANSFER_IN','ADJUSTMENT_INCREASE')  THEN quantity ELSE 0 END)  AS pos_adj,
+           SUM(CASE WHEN movement_type = 'RECEIPT' THEN
+             CASE
+               WHEN ack_status = 'ACCEPTED' THEN quantity
+               WHEN ack_status = 'DISPUTED' AND dispute_resolved_at IS NOT NULL THEN COALESCE(disputed_quantity, 0)
+               ELSE 0
+             END
+           ELSE 0 END)                                                                                     AS supplied,
+           SUM(CASE
+             WHEN movement_type = 'TRANSFER_IN' THEN
+               CASE
+                 WHEN ack_status = 'ACCEPTED' THEN quantity
+                 WHEN ack_status = 'DISPUTED' AND dispute_resolved_at IS NOT NULL THEN COALESCE(disputed_quantity, 0)
+                 ELSE 0
+               END
+             WHEN movement_type = 'ADJUSTMENT_INCREASE' THEN quantity
+             ELSE 0
+           END)                                                                                            AS pos_adj,
            SUM(CASE WHEN movement_type IN ('TRANSFER_OUT','ADJUSTMENT_DECREASE') THEN quantity ELSE 0 END)  AS neg_adj
          FROM stock_movements
          WHERE facility_id = $1
