@@ -14,13 +14,21 @@ function publicUser(row) {
 async function login({ identifier, password }) {
   const result = await pool.query(
     `SELECT u.id, u.username, u.email, u.password_hash, u.full_name, u.role,
-            u.facility_id, u.lga_id, u.is_active,
+            u.facility_id, u.lga_id, u.state_id, u.is_active,
             f.name AS facility_name,
-            COALESCE(fl.name, ul.name) AS lga_name
+            COALESCE(fl.name, ul.name) AS lga_name,
+            -- Effective state: own state_id (admin/central/viewer), or derived
+            -- from their facility (facility_user) or their LGA (dso).
+            -- super_admin resolves to NULL → sees all states.
+            COALESCE(u.state_id, fl.state_id, ul.state_id) AS effective_state_id,
+            COALESCE(os.name, fs.name, us.name)            AS state_name
      FROM users u
      LEFT JOIN facilities f  ON f.id  = u.facility_id
      LEFT JOIN lgas       fl ON fl.id = f.lga_id
      LEFT JOIN lgas       ul ON ul.id = u.lga_id
+     LEFT JOIN states     os ON os.id = u.state_id
+     LEFT JOIN states     fs ON fs.id = fl.state_id
+     LEFT JOIN states     us ON us.id = ul.state_id
      WHERE (u.username = $1 OR u.email = $1)`,
     [identifier]
   );

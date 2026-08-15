@@ -55,6 +55,59 @@ async function adjustBalance(client, facilityId, toolId, delta) {
   );
 }
 
+// ── State-tier availability guard ─────────────────────────────────────────────
+// A facility distribution draws down the STATE's holdings. The state's
+// available balance for a tool is everything HQ has sent to the state
+// (state_stock) minus everything already pushed out to its facilities
+// (RECEIPT movements, acknowledged or not — the tools have left the state
+// office). We DERIVE this rather than debiting state_stock, so HQ "sent to
+// date" totals stay intact for procurement and reporting.
+//
+// Throws a clear, admin-facing error when the tool was never sent to the state
+// or when the requested quantity exceeds what remains. Locks the state_stock
+// row FOR UPDATE so concurrent distributions of the same tool serialise
+// correctly. Call BEFORE inserting the RECEIPT movement.
+async function assertStateHasStock(client, facilityId, toolId, quantity) {
+  const stRes = await client.query(
+    `SELECT l.state_id FROM facilities f JOIN lgas l ON l.id = f.lga_id WHERE f.id = $1`,
+    [facilityId]
+  );
+  const stateId = stRes.rows[0]?.state_id;
+  if (!stateId) throw badRequest('This facility is not linked to a state — cannot verify state stock.');
+
+  const toolRes = await client.query('SELECT name FROM tools WHERE id = $1', [toolId]);
+  const toolName = toolRes.rows[0]?.name ?? `Tool #${toolId}`;
+
+  // Lock the state's balance row for this tool. No row = HQ has never sent it.
+  const ssRes = await client.query(
+    'SELECT quantity FROM state_stock WHERE state_id = $1 AND tool_id = $2 FOR UPDATE',
+    [stateId, toolId]
+  );
+  const received = ssRes.rows.length ? ssRes.rows[0].quantity : 0;
+  if (received <= 0) {
+    throw badRequest(`"${toolName}" is not available in your state stock. Please request it from HQ before distributing.`);
+  }
+
+  const distRes = await client.query(
+    `SELECT COALESCE(SUM(m.quantity), 0)::int AS sent_out
+       FROM stock_movements m
+       JOIN facilities f ON f.id = m.facility_id
+       JOIN lgas       l ON l.id = f.lga_id
+      WHERE m.movement_type = 'RECEIPT'
+        AND m.tool_id  = $1
+        AND l.state_id = $2`,
+    [toolId, stateId]
+  );
+  const available = received - distRes.rows[0].sent_out;
+
+  if (available < quantity) {
+    const have = Math.max(0, available);
+    throw badRequest(
+      `Only ${have} of "${toolName}" available in your state stock — you cannot distribute ${quantity}. Request more from HQ.`
+    );
+  }
+}
+
 async function insertMovement(client, fields) {
   const {
     movement_type,
@@ -94,6 +147,7 @@ async function recordReceipt({ facilityId, toolId, quantity, referenceNo, note, 
   return withTransaction(async (client) => {
     await assertFacilityExists(client, facilityId);
     await assertToolExists(client, toolId);
+    await assertStateHasStock(client, facilityId, toolId, quantity);
 
     const movement = await insertMovement(client, {
       movement_type: 'RECEIPT',
@@ -106,7 +160,8 @@ async function recordReceipt({ facilityId, toolId, quantity, referenceNo, note, 
       ack_status:    'PENDING_ACK',
     });
 
-    await adjustBalance(client, facilityId, toolId, quantity);
+    // NOTE: no balance change here. The facility's stock is only credited
+    // when the facility user confirms PHYSICAL receipt (acknowledgeMovement).
     return movement;
   });
 }
@@ -154,6 +209,19 @@ async function recordTransfer({ sourceFacilityId, destFacilityId, toolId, quanti
     await assertFacilityExists(client, destFacilityId);
     await assertToolExists(client, toolId);
 
+    // Cross-state transfers are not allowed — both facilities must be in the
+    // same state. (UI scoping enforces this too, but guard at the data layer.)
+    const stateCheck = await client.query(
+      `SELECT
+         (SELECT l.state_id FROM facilities f JOIN lgas l ON l.id = f.lga_id WHERE f.id = $1) AS src_state,
+         (SELECT l.state_id FROM facilities f JOIN lgas l ON l.id = f.lga_id WHERE f.id = $2) AS dest_state`,
+      [sourceFacilityId, destFacilityId]
+    );
+    const { src_state, dest_state } = stateCheck.rows[0];
+    if (src_state !== dest_state) {
+      throw badRequest('Transfers must stay within the same state.');
+    }
+
     const current = await getCurrentStock(client, sourceFacilityId, toolId);
     if (current < quantity) {
       throw badRequest(`Source facility only has ${current} — cannot transfer ${quantity}`);
@@ -190,30 +258,38 @@ async function recordTransfer({ sourceFacilityId, destFacilityId, toolId, quanti
       [inRow.id, outRow.id]
     );
 
+    // Source debits immediately — the tools have physically left.
+    // The DESTINATION is only credited when its facility user confirms
+    // physical receipt (acknowledgeMovement).
     await adjustBalance(client, sourceFacilityId, toolId, -quantity);
-    await adjustBalance(client, destFacilityId,   toolId,  quantity);
 
     return { out: outRow, in: inRow };
   });
 }
 
-async function recordBulkReceipt({ toolId, items, referenceNo, note, performedBy }) {
-  if (!items || items.length === 0) throw badRequest('At least one facility is required');
+// Multi-tool bulk distribution. Each item is a full line: { toolId, facilityId,
+// quantity }, so a single submission can send many tools to many facilities
+// (the matrix grid). Runs in one transaction.
+async function recordBulkReceipt({ items, referenceNo, note, performedBy }) {
+  if (!items || items.length === 0) throw badRequest('At least one line is required');
   for (const item of items) {
     if (item.quantity <= 0) throw badRequest('All quantities must be greater than zero');
   }
 
   return withTransaction(async (client) => {
-    await assertToolExists(client, toolId);
-
     const movements = [];
     for (const item of items) {
       await assertFacilityExists(client, item.facilityId);
+      await assertToolExists(client, item.toolId);
+      // Enforce per item, in order: within this transaction each prior insert is
+      // visible to the next check, so the running state balance is respected
+      // even when the same tool appears on several rows.
+      await assertStateHasStock(client, item.facilityId, item.toolId, item.quantity);
 
       const movement = await insertMovement(client, {
         movement_type: 'RECEIPT',
         facility_id:   item.facilityId,
-        tool_id:       toolId,
+        tool_id:       item.toolId,
         quantity:      item.quantity,
         reference_no:  referenceNo ?? null,
         note:          note ?? null,
@@ -221,7 +297,7 @@ async function recordBulkReceipt({ toolId, items, referenceNo, note, performedBy
         ack_status:    'PENDING_ACK',
       });
 
-      await adjustBalance(client, item.facilityId, toolId, item.quantity);
+      // Stock credits only on facility acknowledgement — see acknowledgeMovement.
       movements.push(movement);
     }
 
@@ -272,6 +348,13 @@ async function acknowledgeMovement({
          WHERE id = $2 RETURNING *`,
         [userId, movementId]
       );
+
+      // The facility has confirmed PHYSICAL receipt — credit the stock now.
+      // (Balances are never credited at send time; this is the only path
+      //  besides dispute resolution that increases facility stock from a
+      //  receipt or transfer-in.)
+      await adjustBalance(client, movement.facility_id, movement.tool_id, movement.quantity);
+
       return updated.rows[0];
     }
 
@@ -298,13 +381,14 @@ async function acknowledgeMovement({
 }
 
 /**
- * Admin applies the auto-suggested adjustment for a disputed movement.
- * Creates an ADJUSTMENT_DECREASE for (recorded_quantity - disputed_quantity)
- * at the receiving facility, then marks the original dispute resolved.
+ * Admin resolves a disputed receipt.
  *
- * If disputed_quantity >= recorded_quantity, no adjustment is created
- * (the dispute is just marked resolved — admin can record a separate
- *  adjustment later if they wish).
+ * Because stock is no longer credited at send time (only on facility
+ * acknowledgement), a disputed movement means the facility has been
+ * credited NOTHING yet. Resolution credits the ACTUAL quantity the
+ * facility reported physically receiving (disputed_quantity). If that
+ * is 0 (e.g. wrong tool / never arrived), nothing is credited and the
+ * dispute is simply closed.
  */
 async function applyDisputeResolution({ movementId, performedBy }) {
   return withTransaction(async (client) => {
@@ -318,48 +402,20 @@ async function applyDisputeResolution({ movementId, performedBy }) {
     if (movement.ack_status !== 'DISPUTED') throw badRequest('Movement is not disputed');
     if (movement.dispute_resolved_at) throw badRequest('Dispute already resolved');
 
-    const recorded = movement.quantity;
-    const actual   = movement.disputed_quantity;
-    const diff     = recorded - actual;
+    const actual = movement.disputed_quantity ?? 0;
 
-    let adjustment = null;
-
-    if (diff > 0) {
-      // Make sure the balance can cover the decrease — if facility has
-      // already used some of the tool since acknowledgement, the balance
-      // might be lower than the dispute diff. Cap to current balance.
-      const current = await getCurrentStock(client, movement.facility_id, movement.tool_id);
-      const safeDiff = Math.min(diff, current);
-
-      if (safeDiff > 0) {
-        const reasonText = `Dispute resolution: ${movement.dispute_reason.replace('_', ' ').toLowerCase()}`;
-        const noteText   = `Resolves disputed receipt #${movement.id}.${
-          movement.dispute_note ? ` Reporter note: ${movement.dispute_note}` : ''
-        }`;
-
-        adjustment = await insertMovement(client, {
-          movement_type: 'ADJUSTMENT_DECREASE',
-          facility_id:   movement.facility_id,
-          tool_id:       movement.tool_id,
-          quantity:      safeDiff,
-          reason:        reasonText,
-          note:          noteText,
-          performed_by:  performedBy,
-        });
-
-        await adjustBalance(client, movement.facility_id, movement.tool_id, -safeDiff);
-      }
+    if (actual > 0) {
+      await adjustBalance(client, movement.facility_id, movement.tool_id, actual);
     }
 
     await client.query(
       `UPDATE stock_movements
-       SET dispute_resolved_at = NOW(),
-           dispute_resolution_movement_id = $1
-       WHERE id = $2`,
-      [adjustment?.id ?? null, movementId]
+       SET dispute_resolved_at = NOW()
+       WHERE id = $1`,
+      [movementId]
     );
 
-    return { resolved: true, adjustment };
+    return { resolved: true, credited: actual };
   });
 }
 

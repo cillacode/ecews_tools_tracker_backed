@@ -22,13 +22,19 @@ async function requireAuth(req, res, next) {
     // Re-fetch user to enforce is_active and pick up role changes mid-session.
     const result = await pool.query(
       `SELECT u.id, u.username, u.email, u.full_name, u.role,
-              u.facility_id, u.lga_id, u.is_active,
+              u.facility_id, u.lga_id, u.state_id, u.is_active,
               f.name AS facility_name,
-              COALESCE(fl.name, ul.name) AS lga_name
+              COALESCE(fl.name, ul.name) AS lga_name,
+              -- Effective state for access scoping. See authService for rationale.
+              COALESCE(u.state_id, fl.state_id, ul.state_id) AS effective_state_id,
+              COALESCE(os.name, fs.name, us.name)            AS state_name
        FROM users u
        LEFT JOIN facilities f  ON f.id  = u.facility_id
        LEFT JOIN lgas       fl ON fl.id = f.lga_id
        LEFT JOIN lgas       ul ON ul.id = u.lga_id
+       LEFT JOIN states     os ON os.id = u.state_id
+       LEFT JOIN states     fs ON fs.id = fl.state_id
+       LEFT JOIN states     us ON us.id = ul.state_id
        WHERE u.id = $1`,
       [payload.sub]
     );
@@ -48,6 +54,9 @@ function requireRole(...roles) {
   const allowed = roles.flat();
   return (req, res, next) => {
     if (!req.user) return next(unauthorized());
+    // super_admin is the system-wide superset — bypasses every role gate.
+    // State-level scoping still applies at the data layer for non-super-admin.
+    if (req.user.role === 'super_admin') return next();
     if (!allowed.includes(req.user.role)) return next(forbidden('Insufficient permissions'));
     next();
   };

@@ -1,5 +1,11 @@
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
 const env = require('./env');
+
+// Return DATE columns (usage_date, week buckets…) as plain 'YYYY-MM-DD'
+// strings instead of JS Date objects. The default Date parsing lands at
+// LOCAL midnight, so any toISOString()/JSON serialization in a non-UTC
+// timezone (we run in UTC+1) silently shifts dates back by one day.
+types.setTypeParser(1082, (v) => v);
 
 // Single shared pool. SSL flag supports both local Postgres and managed (Supabase / RDS).
 const pool = new Pool({

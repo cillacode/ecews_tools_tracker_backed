@@ -4,26 +4,28 @@ const { pool } = require('../config/db');
 const asyncHandler = require('../utils/asyncHandler');
 const { requireAuth } = require('../middleware/auth');
 const { badRequest } = require('../utils/errors');
+const { applyFacilityScope } = require('../middleware/scope');
 
 const router = express.Router();
 
-// Adds an access-scope condition to `conditions` (and binds to `params`).
-// Returns true if the caller's role enforced a scope (so a caller-supplied
-// facility_id query param should be ignored).
-function applyAccessScope(req, conditions, params, columnRef) {
-  if (req.user.role === 'facility_user') {
-    if (!req.user.facility_id) throw badRequest('Facility user has no facility assigned');
-    params.push(req.user.facility_id);
-    conditions.push(`${columnRef} = $${params.length}`);
-    return true;
+// Reports use the shared facility scope (facility_user / dso / state / super).
+const applyAccessScope = (req, conditions, params, columnRef) =>
+  applyFacilityScope(req, conditions, params, columnRef);
+
+// Optional geographic narrowing for reports — translate state_id / lga_id into
+// a facility subquery on the given facility-id column. Used by HQ to report
+// per state / per LGA. Safe to call with empty values (no-op).
+function applyGeoFilters(conditions, params, columnRef, { state_id, lga_id }) {
+  if (state_id) {
+    params.push(Number(state_id));
+    conditions.push(
+      `${columnRef} IN (SELECT f.id FROM facilities f JOIN lgas l ON l.id = f.lga_id WHERE l.state_id = $${params.length})`
+    );
   }
-  if (req.user.role === 'dso') {
-    if (!req.user.lga_id) throw badRequest('DSO has no LGA assigned');
-    params.push(req.user.lga_id);
+  if (lga_id) {
+    params.push(Number(lga_id));
     conditions.push(`${columnRef} IN (SELECT id FROM facilities WHERE lga_id = $${params.length})`);
-    return true;
   }
-  return false;
 }
 
 // ── Styling helpers ───────────────────────────────────────────────────────────
@@ -52,7 +54,7 @@ router.get(
   '/movements',
   requireAuth,
   asyncHandler(async (req, res) => {
-    const { facility_id, tool_id, type, from, to } = req.query;
+    const { facility_id, state_id, lga_id, tool_id, type, from, to } = req.query;
     const conditions = [];
     const params = [];
 
@@ -62,6 +64,7 @@ router.get(
       params.push(facility_id);
       conditions.push(`m.facility_id = $${params.length}`);
     }
+    applyGeoFilters(conditions, params, 'm.facility_id', { state_id, lga_id });
     if (tool_id) { params.push(tool_id); conditions.push(`m.tool_id = $${params.length}`); }
     if (type)    { params.push(type);    conditions.push(`m.movement_type = $${params.length}`); }
     if (from)    { params.push(from);    conditions.push(`m.performed_at >= $${params.length}`); }
@@ -138,7 +141,7 @@ router.get(
   '/facility-stock',
   requireAuth,
   asyncHandler(async (req, res) => {
-    const { facility_id } = req.query;
+    const { facility_id, state_id, lga_id } = req.query;
     const conditions = [];
     const params = [];
 
@@ -147,6 +150,7 @@ router.get(
       params.push(facility_id);
       conditions.push(`fs.facility_id = $${params.length}`);
     }
+    applyGeoFilters(conditions, params, 'fs.facility_id', { state_id, lga_id });
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const result = await pool.query(
@@ -178,26 +182,45 @@ router.get(
       { header: 'Thematic Area',    key: 'thematic_area',    width: 20 },
       { header: 'Tool',             key: 'tool_name',        width: 42 },
       { header: 'Status',           key: 'tool_status',      width: 16 },
-      { header: 'Quantity',         key: 'quantity',         width: 10 },
+      { header: 'SOH',              key: 'quantity',         width: 10 },
+      { header: 'Stock level',      key: 'stock_level',      width: 16 },
       { header: 'Last Movement',    key: 'last_movement_at', width: 22 },
     ];
 
+    // Traffic-light stock levels to support procurement planning:
+    //   qty <= 5   → red    "Restock tool"
+    //   qty <= 10  → orange "Low stock"
+    //   qty >  10  → green  "Adequate"
+    const stockLevel = (qty) =>
+      qty <= 5
+        ? { text: 'Restock tool', fill: 'FFDC2626' }   // red
+        : qty <= 10
+          ? { text: 'Low stock',  fill: 'FFF59E0B' }   // orange
+          : { text: 'Adequate',   fill: 'FF16A34A' };  // green
+
     for (const row of result.rows) {
+      const level = stockLevel(row.quantity);
       ws.addRow({
         ...row,
         tool_status:      row.tool_status?.replace('_', ' / ') ?? '',
+        stock_level:      level.text,
         last_movement_at: row.last_movement_at ? new Date(row.last_movement_at).toLocaleString('en-GB') : '—',
       });
 
-      // Colour zero-stock cells red
       const lastRow = ws.lastRow;
+      // Cell background carries the stock-level colour; white bold text for contrast.
+      const levelCell = lastRow.getCell('stock_level');
+      levelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: level.fill } };
+      levelCell.font = { color: { argb: 'FFFFFFFF' }, bold: true };
+
+      // Keep the zero-quantity emphasis on the quantity cell as well.
       if (row.quantity === 0) {
         lastRow.getCell('quantity').font = { color: { argb: 'FFB91C1C' }, bold: true };
       }
     }
 
     styleHeader(ws);
-    ws.autoFilter = { from: 'A1', to: 'G1' };
+    ws.autoFilter = { from: 'A1', to: 'H1' };
     ws.views = [{ state: 'frozen', ySplit: 1 }];
 
     await sendExcel(res, wb, `facility-stock-${new Date().toISOString().slice(0, 10)}.xlsx`);
@@ -301,7 +324,7 @@ router.get(
   '/usage',
   requireAuth,
   asyncHandler(async (req, res) => {
-    const { facility_id, tool_id, from, to } = req.query;
+    const { facility_id, state_id, lga_id, tool_id, from, to } = req.query;
 
     // ── Filter scaffolding shared between both sheets ──
     // For the weekly sheet, the per_key CTE is filtered by pk.* references.
@@ -313,8 +336,12 @@ router.get(
       weeklyParams.push(facility_id);
       weeklyConds.push(`pk.facility_id = $${weeklyParams.length}`);
     }
+    applyGeoFilters(weeklyConds, weeklyParams, 'pk.facility_id', { state_id, lga_id });
     if (tool_id) { weeklyParams.push(tool_id); weeklyConds.push(`pk.tool_id = $${weeklyParams.length}`); }
-    if (from)    { weeklyParams.push(from);    weeklyConds.push(`pk.week_start >= $${weeklyParams.length}::date`); }
+    // Weeks are keyed by their MONDAY. A mid-week `from` date must still
+    // include its own week — otherwise an entry visible on the Daily sheet
+    // silently disappears from the Weekly summary. Snap `from` to week start.
+    if (from)    { weeklyParams.push(from);    weeklyConds.push(`pk.week_start >= date_trunc('week', $${weeklyParams.length}::date)`); }
     if (to)      { weeklyParams.push(to);      weeklyConds.push(`pk.week_start <= $${weeklyParams.length}::date`); }
     const weeklyWhere = weeklyConds.length ? `WHERE ${weeklyConds.join(' AND ')}` : '';
 
@@ -325,6 +352,7 @@ router.get(
       dailyParams.push(facility_id);
       dailyConds.push(`tu.facility_id = $${dailyParams.length}`);
     }
+    applyGeoFilters(dailyConds, dailyParams, 'tu.facility_id', { state_id, lga_id });
     if (tool_id) { dailyParams.push(tool_id); dailyConds.push(`tu.tool_id = $${dailyParams.length}`); }
     if (from)    { dailyParams.push(from);    dailyConds.push(`tu.usage_date >= $${dailyParams.length}::date`); }
     if (to)      { dailyParams.push(to);      dailyConds.push(`tu.usage_date <= $${dailyParams.length}::date`); }
@@ -347,11 +375,28 @@ router.get(
          FROM stock_movements
        ),
        weekly_movements AS (
+         -- Incoming stock counts only once physically confirmed by the
+         -- facility (ACCEPTED = full qty, resolved dispute = actual qty).
          SELECT
            facility_id, tool_id,
            date_trunc('week', performed_at)::date AS week_start,
-           SUM(CASE WHEN movement_type = 'RECEIPT' THEN quantity ELSE 0 END)                              AS supplied,
-           SUM(CASE WHEN movement_type IN ('TRANSFER_IN','ADJUSTMENT_INCREASE')  THEN quantity ELSE 0 END) AS pos_adj,
+           SUM(CASE WHEN movement_type = 'RECEIPT' THEN
+             CASE
+               WHEN ack_status = 'ACCEPTED' THEN quantity
+               WHEN ack_status = 'DISPUTED' AND dispute_resolved_at IS NOT NULL THEN COALESCE(disputed_quantity, 0)
+               ELSE 0
+             END
+           ELSE 0 END)                                                                                    AS supplied,
+           SUM(CASE
+             WHEN movement_type = 'TRANSFER_IN' THEN
+               CASE
+                 WHEN ack_status = 'ACCEPTED' THEN quantity
+                 WHEN ack_status = 'DISPUTED' AND dispute_resolved_at IS NOT NULL THEN COALESCE(disputed_quantity, 0)
+                 ELSE 0
+               END
+             WHEN movement_type = 'ADJUSTMENT_INCREASE' THEN quantity
+             ELSE 0
+           END)                                                                                           AS pos_adj,
            SUM(CASE WHEN movement_type IN ('TRANSFER_OUT','ADJUSTMENT_DECREASE') THEN quantity ELSE 0 END) AS neg_adj
          FROM stock_movements
          GROUP BY facility_id, tool_id, date_trunc('week', performed_at)
@@ -447,7 +492,8 @@ router.get(
     // 1. Weekly summary
     const wsWeekly = wb.addWorksheet('Weekly summary');
     wsWeekly.columns = [
-      { header: 'Week start',          key: 'week_start_date',     width: 12 },
+      { header: 'Week start (Mon)',    key: 'week_start_date',     width: 14 },
+      { header: 'Week ending (Fri)',   key: 'week_end_date',       width: 15 },
       { header: 'Facility',            key: 'facility_name',       width: 30 },
       { header: 'LGA',                 key: 'lga_name',            width: 16 },
       { header: 'Thematic area',       key: 'thematic_area',       width: 18 },
@@ -461,16 +507,24 @@ router.get(
       { header: 'Ending Balance',      key: 'ending_balance',      width: 14 },
     ];
     for (const row of weeklyResult.rows) {
+      // Working week ends Friday: Monday + 4 days.
+      let weekEnd = '';
+      if (row.week_start_date) {
+        const end = new Date(row.week_start_date);
+        end.setDate(end.getDate() + 4);
+        weekEnd = end.toISOString().slice(0, 10);
+      }
       wsWeekly.addRow({
         ...row,
         week_start_date: row.week_start_date
           ? new Date(row.week_start_date).toISOString().slice(0, 10)
           : '',
+        week_end_date: weekEnd,
       });
     }
     styleHeader(wsWeekly);
-    wsWeekly.autoFilter = { from: 'A1', to: 'L1' };
-    wsWeekly.views = [{ state: 'frozen', ySplit: 1, xSplit: 5 }];
+    wsWeekly.autoFilter = { from: 'A1', to: 'M1' };
+    wsWeekly.views = [{ state: 'frozen', ySplit: 1, xSplit: 6 }];
 
     // 2. Daily detail
     const wsDaily = wb.addWorksheet('Daily detail');
@@ -480,9 +534,9 @@ router.get(
       { header: 'LGA',           key: 'lga_name',       width: 16 },
       { header: 'Thematic area', key: 'thematic_area',  width: 18 },
       { header: 'Tool',          key: 'tool_name',      width: 38 },
-      { header: 'Usage count',   key: 'usage_count',    width: 14 },
-      { header: 'Note',          key: 'note',           width: 28 },
-      { header: 'Recorded by',   key: 'recorded_by',    width: 22 },
+      { header: 'Usage count',    key: 'usage_count',    width: 14 },
+      { header: 'Tool unique ID', key: 'note',           width: 28 },
+      { header: 'Recorded by',    key: 'recorded_by',    width: 22 },
       { header: 'Recorded at',   key: 'recorded_at',    width: 20 },
     ];
     for (const row of dailyResult.rows) {

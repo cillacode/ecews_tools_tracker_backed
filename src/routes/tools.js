@@ -93,6 +93,50 @@ router.get(
   })
 );
 
+// ── GET /api/tools/:id/distribution ───────────────────────────────────────────
+// Every facility holding this tool, with quantities. State admins are locked to
+// their own state; super_admin (HQ) sees all states and may optionally narrow
+// with ?state_id (the tools-catalogue drill-down filters by state then LGA).
+router.get(
+  '/:id/distribution',
+  requireAuth,
+  requireRole('admin'),
+  asyncHandler(async (req, res) => {
+    const toolId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(toolId)) throw notFound('Tool not found');
+
+    let stateId;
+    if (req.user.role === 'super_admin') {
+      const q = parseInt(req.query.state_id, 10);
+      stateId = Number.isInteger(q) ? q : null; // null = every state
+    } else {
+      stateId = req.user.effective_state_id ?? null;
+    }
+
+    const result = await pool.query(
+      `SELECT
+         f.id   AS facility_id,
+         f.name AS facility_name,
+         l.name AS lga_name,
+         s.name AS state_name,
+         fs.quantity,
+         fs.last_movement_at
+       FROM facility_stock fs
+       JOIN facilities f ON f.id = fs.facility_id
+       JOIN lgas       l ON l.id = f.lga_id
+       JOIN states     s ON s.id = l.state_id
+       WHERE fs.tool_id = $1
+         AND f.is_active = TRUE
+         AND ($2::int IS NULL OR l.state_id = $2)
+       ORDER BY fs.quantity DESC, f.name`,
+      [toolId, stateId]
+    );
+
+    const total = result.rows.reduce((sum, r) => sum + r.quantity, 0);
+    res.json({ total, count: result.rows.length, data: result.rows });
+  })
+);
+
 // ── POST /api/tools (admin only) ──────────────────────────────────────────────
 const createToolSchema = z.object({
   name: z.string().trim().min(1, 'Name is required'),
@@ -106,7 +150,7 @@ const createToolSchema = z.object({
 router.post(
   '/',
   requireAuth,
-  requireRole('admin'),
+  requireRole('super_admin'),
   validate(createToolSchema),
   asyncHandler(async (req, res) => {
     const { name, thematic_area_id, status, is_new_indicator, is_ip_retained, description } =
@@ -138,7 +182,7 @@ const updateToolSchema = z.object({
 router.patch(
   '/:id',
   requireAuth,
-  requireRole('admin'),
+  requireRole('super_admin'),
   validate(updateToolSchema),
   asyncHandler(async (req, res) => {
     const { id } = req.params;

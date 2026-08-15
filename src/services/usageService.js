@@ -65,8 +65,9 @@ async function recordDailyUsage({ facilityId, usageDate, entries, recordedBy }) 
     await assertFacilityExists(client, facilityId);
 
     // Pre-validate ALL non-zero entries against current stock before writing
-    // anything. The whole batch is rejected if any tool would over-draw —
-    // keeps the ledger and tracker math reconcilable.
+    // anything. The whole batch is rejected if any tool would over-draw, or if
+    // a physically-counted balance doesn't reconcile — keeps the ledger and
+    // tracker math reconcilable and forces a genuine physical recount.
     for (const entry of entries) {
       if (entry.count === 0) continue;
       await assertToolExists(client, entry.tool_id);
@@ -76,17 +77,33 @@ async function recordDailyUsage({ facilityId, usageDate, entries, recordedBy }) 
         [facilityId, entry.tool_id]
       );
       const available = stockRes.rows[0]?.quantity ?? 0;
+
+      const toolName = async () => {
+        const r = await client.query('SELECT name FROM tools WHERE id = $1', [entry.tool_id]);
+        return r.rows[0]?.name ?? `Tool #${entry.tool_id}`;
+      };
+
       if (entry.count > available) {
-        const toolRes = await client.query(
-          'SELECT name FROM tools WHERE id = $1',
-          [entry.tool_id]
-        );
-        const toolName = toolRes.rows[0]?.name ?? `Tool #${entry.tool_id}`;
+        const name = await toolName();
         throw badRequest(
           available === 0
-            ? `${toolName} is out of stock — nothing to record. Ask admin to receive more before logging usage.`
-            : `Not enough ${toolName}: only ${available} on hand, you tried to record ${entry.count}.`
+            ? `${name} is out of stock — nothing to record. Ask admin to receive more before logging usage.`
+            : `Not enough ${name}: only ${available} on hand, you tried to record ${entry.count}.`
         );
+      }
+
+      // Physical-count validation (hard block). Expected on-hand after giving
+      // out `count` = current stock − count. If the physically counted balance
+      // doesn't match, the entry is rejected until it reconciles.
+      if (entry.physical_balance !== undefined && entry.physical_balance !== null) {
+        const expected = available - entry.count;
+        if (entry.physical_balance !== expected) {
+          const name = await toolName();
+          throw badRequest(
+            `${name}: the physical balance you entered (${entry.physical_balance}) does not tally with the expected ` +
+            `balance (${expected} = ${available} on hand − ${entry.count} given out). Kindly recount the physical tool.`
+          );
+        }
       }
     }
 
@@ -106,16 +123,19 @@ async function recordDailyUsage({ facilityId, usageDate, entries, recordedBy }) 
 
       const upsert = await client.query(
         `INSERT INTO tool_usage
-           (facility_id, tool_id, usage_date, usage_count, note, recorded_by)
-         VALUES ($1, $2, $3, $4, $5, $6)
+           (facility_id, tool_id, usage_date, usage_count, note, recorded_by, service_point_id, physical_balance)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          ON CONFLICT (facility_id, tool_id, usage_date)
          DO UPDATE SET
-           usage_count = $4,
-           note        = COALESCE($5, tool_usage.note),
-           recorded_by = $6,
-           updated_at  = NOW()
+           usage_count      = $4,
+           note             = COALESCE($5, tool_usage.note),
+           recorded_by      = $6,
+           service_point_id = COALESCE($7, tool_usage.service_point_id),
+           physical_balance = $8,
+           updated_at       = NOW()
          RETURNING *`,
-        [facilityId, entry.tool_id, usageDate, newTotal, entry.note ?? null, recordedBy]
+        [facilityId, entry.tool_id, usageDate, newTotal, entry.note ?? null, recordedBy,
+         entry.service_point_id ?? null, entry.physical_balance ?? null]
       );
 
       // Always decrement stock by the amount added (never credit back).
