@@ -95,7 +95,7 @@ router.get(
     );
 
     const wb = new ExcelJS.Workbook();
-    wb.creator = 'MER Tools';
+    wb.creator = 'PTIS';
     const ws = wb.addWorksheet('Movements');
 
     ws.columns = [
@@ -173,7 +173,7 @@ router.get(
     );
 
     const wb = new ExcelJS.Workbook();
-    wb.creator = 'MER Tools';
+    wb.creator = 'PTIS';
     const ws = wb.addWorksheet('Facility Stock');
 
     ws.columns = [
@@ -273,7 +273,7 @@ router.get(
     }
 
     const wb = new ExcelJS.Workbook();
-    wb.creator = 'MER Tools';
+    wb.creator = 'PTIS';
     const ws = wb.addWorksheet('Coverage Pivot');
 
     // Build column defs: LGA | Facility | one col per thematic area (qty)
@@ -487,7 +487,7 @@ router.get(
 
     // ── Build the workbook with two worksheets ─────────────────────────────
     const wb = new ExcelJS.Workbook();
-    wb.creator = 'MER Tools';
+    wb.creator = 'PTIS';
 
     // 1. Weekly summary
     const wsWeekly = wb.addWorksheet('Weekly summary');

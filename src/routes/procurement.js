@@ -231,3 +231,6 @@ router.get(
 );
 
 module.exports = router;
+// Reused by the notifications summary (low-tools badge count).
+module.exports.lowToolsForState = lowToolsForState;
+module.exports.DEFAULT_THRESHOLD = DEFAULT_THRESHOLD;
