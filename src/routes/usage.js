@@ -76,11 +76,12 @@ async function resolveScopedFacility(req) {
 const submitSchema = z.object({
   usage_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format YYYY-MM-DD required'),
   entries: z.array(z.object({
-    tool_id:          z.number().int().positive(),
-    count:            z.number().int().min(0),
-    note:             z.string().trim().optional(),
-    service_point_id: z.number().int().positive().optional(),
-    physical_balance: z.number().int().min(0).optional(),
+    tool_id:             z.number().int().positive(),
+    count:               z.number().int().min(0),
+    note:                z.string().trim().optional(),
+    service_point_ids:   z.array(z.number().int().positive()).optional(),
+    service_point_other: z.string().trim().optional(),
+    physical_balance:    z.number().int().min(0).optional(),
   })).min(1, 'At least one entry required'),
 });
 

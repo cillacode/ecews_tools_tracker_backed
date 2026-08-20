@@ -107,9 +107,26 @@ async function recordDailyUsage({ facilityId, usageDate, entries, recordedBy }) 
       }
     }
 
+    // Resolve service-point names once (ids may repeat across entries).
+    const allSpIds = [...new Set(entries.flatMap((e) => e.service_point_ids ?? []))];
+    const spNameById = new Map();
+    if (allSpIds.length > 0) {
+      const sp = await client.query('SELECT id, name FROM service_points WHERE id = ANY($1)', [allSpIds]);
+      for (const r of sp.rows) spNameById.set(r.id, r.name);
+    }
+    // Build the display list for one entry: known point names + "Others: <text>".
+    const servicePointsText = (entry) => {
+      const parts = (entry.service_point_ids ?? []).map((id) => spNameById.get(id)).filter(Boolean);
+      if (entry.service_point_other) parts.push(`Others: ${entry.service_point_other}`);
+      return parts.length ? parts.join(', ') : null;
+    };
+
     const results = [];
     for (const entry of entries) {
       if (entry.count === 0) continue; // skip no-op entries silently
+
+      const spText = servicePointsText(entry);
+      const spFirstId = (entry.service_point_ids ?? [])[0] ?? null;
 
       // Pull existing total for the day so we can ADD on top of it.
       const existing = await client.query(
@@ -123,19 +140,20 @@ async function recordDailyUsage({ facilityId, usageDate, entries, recordedBy }) 
 
       const upsert = await client.query(
         `INSERT INTO tool_usage
-           (facility_id, tool_id, usage_date, usage_count, note, recorded_by, service_point_id, physical_balance)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           (facility_id, tool_id, usage_date, usage_count, note, recorded_by, service_point_id, service_points, physical_balance)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          ON CONFLICT (facility_id, tool_id, usage_date)
          DO UPDATE SET
            usage_count      = $4,
            note             = COALESCE($5, tool_usage.note),
            recorded_by      = $6,
            service_point_id = COALESCE($7, tool_usage.service_point_id),
-           physical_balance = $8,
+           service_points   = COALESCE($8, tool_usage.service_points),
+           physical_balance = $9,
            updated_at       = NOW()
          RETURNING *`,
         [facilityId, entry.tool_id, usageDate, newTotal, entry.note ?? null, recordedBy,
-         entry.service_point_id ?? null, entry.physical_balance ?? null]
+         spFirstId, spText, entry.physical_balance ?? null]
       );
 
       // Always decrement stock by the amount added (never credit back).

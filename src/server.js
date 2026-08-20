@@ -24,6 +24,7 @@ const stateMovementsRoutes = require('./routes/stateMovements');
 const gatePassRoutes       = require('./routes/gatePass');
 const procurementRoutes    = require('./routes/procurement');
 const servicePointsRoutes  = require('./routes/servicePoints');
+const notificationsRoutes  = require('./routes/notifications');
 
 const app = express();
 
@@ -69,7 +70,7 @@ app.use(
 // ── Routes ─────────────────────────────────────────────────────────────────
 app.get('/', (req, res) => {
   res.json({
-    name: 'MER Tools Backend',
+    name: 'PTIS Backend',
     status: 'ok',
     version: '0.1.0',
   });
@@ -102,6 +103,7 @@ app.use('/api/state-movements', stateMovementsRoutes);
 app.use('/api/gate-pass',     gatePassRoutes);
 app.use('/api/procurement',   procurementRoutes);
 app.use('/api/service-points', servicePointsRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // ── 404 + error handlers (must be last) ───────────────────────────────────
 app.use(notFoundHandler);
@@ -109,7 +111,7 @@ app.use(errorHandler);
 
 // ── Boot ───────────────────────────────────────────────────────────────────
 const server = app.listen(env.port, () => {
-  console.log(`✓ MER Tools API listening on http://localhost:${env.port}`);
+  console.log(`✓ PTIS API listening on http://localhost:${env.port}`);
   console.log(`  env=${env.nodeEnv}  CORS allowed: ${env.corsOrigins.join(', ')}`);
 });
 

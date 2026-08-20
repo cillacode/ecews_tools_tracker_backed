@@ -37,7 +37,7 @@ function renderGatePassPage(doc, page, first) {
     doc.y = headTop + 42;
   }
   doc.font('Helvetica-Bold').fontSize(16).fillColor('#14532D')
-    .text('MER Tools — Delivery Note', left, doc.y);
+    .text('PTIS — Delivery Note', left, doc.y);
   doc.moveDown(0.2);
   doc.font('Helvetica').fontSize(9).fillColor('#64748B')
     .text('Present this signed delivery note at the gate before tools leave the state office.');

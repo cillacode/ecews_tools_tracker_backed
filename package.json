@@ -1,7 +1,7 @@
 {
   "name": "mer-tools-backend",
   "version": "0.1.0",
-  "description": "MER Tools Distribution Tracking — backend API",
+  "description": "PTIS — Program Tools Inventory System backend API",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/db/migrate.js && node src/server.js",
